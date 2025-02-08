@@ -10,8 +10,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fieldMappings, generateSqlQuery } from '@/utils/fieldMappings';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 // Operator definitions based on field type
 const operators = {
@@ -43,14 +52,22 @@ interface FilterRow {
   value2?: string;
 }
 
+// Mock data for demonstration
+const mockData = [
+  { full_name: 'John Doe', age: 30, created_at: '2024-01-01', status: 'active' },
+  { full_name: 'Jane Smith', age: 25, created_at: '2024-01-15', status: 'pending' },
+  // Add more mock data as needed
+];
+
 const FieldFilter = () => {
   const [filters, setFilters] = useState<FilterRow[]>([]);
   const [sqlQuery, setSqlQuery] = useState<string>('');
+  const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
 
   useEffect(() => {
-    const query = generateSqlQuery(filters);
+    const query = generateSqlQuery(filters, selectedColumns);
     setSqlQuery(query);
-  }, [filters]);
+  }, [filters, selectedColumns]);
 
   const addFilter = () => {
     const newFilter: FilterRow = {
@@ -83,6 +100,47 @@ const FieldFilter = () => {
     const fieldType = getFieldType(fieldId);
     return operators[fieldType as keyof typeof operators] || [];
   };
+
+  const toggleColumn = (columnId: string) => {
+    setSelectedColumns(prev => 
+      prev.includes(columnId)
+        ? prev.filter(id => id !== columnId)
+        : [...prev, columnId]
+    );
+  };
+
+  const filteredData = mockData.filter(row => {
+    if (filters.length === 0) return true;
+    return filters.every(filter => {
+      const field = fieldMappings.find(f => f.id === filter.field);
+      if (!field) return true;
+
+      const value = row[field.sqlColumn as keyof typeof row];
+      
+      switch (filter.operator) {
+        case 'equals':
+          return String(value) === filter.value;
+        case 'contains':
+          return String(value).includes(filter.value);
+        case 'startsWith':
+          return String(value).startsWith(filter.value);
+        case 'endsWith':
+          return String(value).endsWith(filter.value);
+        case 'greaterThan':
+          return Number(value) > Number(filter.value);
+        case 'lessThan':
+          return Number(value) < Number(filter.value);
+        case 'between':
+          return Number(value) >= Number(filter.value) && Number(value) <= Number(filter.value2 || filter.value);
+        case 'before':
+          return new Date(value) < new Date(filter.value);
+        case 'after':
+          return new Date(value) > new Date(filter.value);
+        default:
+          return true;
+      }
+    });
+  });
 
   return (
     <div className="w-full max-w-4xl mx-auto p-6 space-y-4">
@@ -182,14 +240,81 @@ const FieldFilter = () => {
         )}
       </div>
 
-      {sqlQuery && (
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Generated SQL Query:</h3>
-          <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
-            {sqlQuery}
-          </pre>
+      <div className="mt-6 space-y-4">
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Select Columns to Display:</h3>
+          <div className="flex flex-wrap gap-4">
+            {fieldMappings.filter(field => field.selectable).map((field) => (
+              <div key={field.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`column-${field.id}`}
+                  checked={selectedColumns.includes(field.id)}
+                  onCheckedChange={() => toggleColumn(field.id)}
+                />
+                <label
+                  htmlFor={`column-${field.id}`}
+                  className="text-sm text-gray-700"
+                >
+                  {field.label}
+                </label>
+              </div>
+            ))}
+          </div>
         </div>
-      )}
+
+        {sqlQuery && (
+          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Generated SQL Query:</h3>
+            <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
+              {sqlQuery}
+            </pre>
+          </div>
+        )}
+
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Results:</h3>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {selectedColumns.length > 0 ? (
+                  selectedColumns.map(colId => {
+                    const field = fieldMappings.find(f => f.id === colId);
+                    return (
+                      <TableHead key={colId}>{field?.label || ''}</TableHead>
+                    );
+                  })
+                ) : (
+                  fieldMappings.map(field => (
+                    <TableHead key={field.id}>{field.label}</TableHead>
+                  ))
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredData.map((row, index) => (
+                <TableRow key={index}>
+                  {selectedColumns.length > 0 ? (
+                    selectedColumns.map(colId => {
+                      const field = fieldMappings.find(f => f.id === colId);
+                      return (
+                        <TableCell key={colId}>
+                          {field ? row[field.sqlColumn as keyof typeof row] : ''}
+                        </TableCell>
+                      );
+                    })
+                  ) : (
+                    fieldMappings.map(field => (
+                      <TableCell key={field.id}>
+                        {row[field.sqlColumn as keyof typeof row]}
+                      </TableCell>
+                    ))
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
     </div>
   );
 };

@@ -5,6 +5,7 @@ export interface FieldMapping {
   type: 'text' | 'number' | 'date';
   sqlColumn: string;
   table: string;
+  selectable?: boolean;
 }
 
 export const fieldMappings: FieldMapping[] = [
@@ -13,28 +14,32 @@ export const fieldMappings: FieldMapping[] = [
     label: 'Name',
     type: 'text',
     sqlColumn: 'full_name',
-    table: 'users'
+    table: 'users',
+    selectable: true
   },
   {
     id: 'age',
     label: 'Age',
     type: 'number',
     sqlColumn: 'age',
-    table: 'users'
+    table: 'users',
+    selectable: true
   },
   {
     id: 'date',
     label: 'Date',
     type: 'date',
     sqlColumn: 'created_at',
-    table: 'users'
+    table: 'users',
+    selectable: true
   },
   {
     id: 'status',
     label: 'Status',
     type: 'text',
     sqlColumn: 'status',
-    table: 'users'
+    table: 'users',
+    selectable: true
   }
 ];
 
@@ -45,8 +50,18 @@ interface SqlQueryParams {
   value2?: string;
 }
 
-export const generateSqlQuery = (filters: SqlQueryParams[]): string => {
+export const generateSqlQuery = (filters: SqlQueryParams[], selectedColumns: string[]): string => {
   if (filters.length === 0) return '';
+
+  const columnsToSelect = selectedColumns.length > 0 
+    ? selectedColumns
+        .map(colId => {
+          const field = fieldMappings.find(f => f.id === colId);
+          return field ? `${field.table}.${field.sqlColumn}` : null;
+        })
+        .filter(col => col !== null)
+        .join(', ')
+    : '*';
 
   const conditions = filters.map(filter => {
     const fieldMapping = fieldMappings.find(f => f.id === filter.field);
@@ -79,5 +94,5 @@ export const generateSqlQuery = (filters: SqlQueryParams[]): string => {
     }
   }).filter(condition => condition !== '');
 
-  return `SELECT * FROM users WHERE ${conditions.join(' AND ')}`;
+  return `SELECT ${columnsToSelect} FROM users${conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : ''}`;
 };
