@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,14 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
-
-// Field definitions
-const fields = [
-  { id: 'name', label: 'Name', type: 'text' },
-  { id: 'age', label: 'Age', type: 'number' },
-  { id: 'date', label: 'Date', type: 'date' },
-  { id: 'status', label: 'Status', type: 'text' },
-];
+import { fieldMappings, generateSqlQuery } from '@/utils/fieldMappings';
 
 // Operator definitions based on field type
 const operators = {
@@ -47,11 +40,17 @@ interface FilterRow {
   field: string;
   operator: string;
   value: string;
-  value2?: string; // For "between" operator
+  value2?: string;
 }
 
 const FieldFilter = () => {
   const [filters, setFilters] = useState<FilterRow[]>([]);
+  const [sqlQuery, setSqlQuery] = useState<string>('');
+
+  useEffect(() => {
+    const query = generateSqlQuery(filters);
+    setSqlQuery(query);
+  }, [filters]);
 
   const addFilter = () => {
     const newFilter: FilterRow = {
@@ -76,7 +75,7 @@ const FieldFilter = () => {
   };
 
   const getFieldType = (fieldId: string) => {
-    const field = fields.find((f) => f.id === fieldId);
+    const field = fieldMappings.find((f) => f.id === fieldId);
     return field?.type || 'text';
   };
 
@@ -114,7 +113,7 @@ const FieldFilter = () => {
                     <SelectValue placeholder="Select field" />
                   </SelectTrigger>
                   <SelectContent>
-                    {fields.map((field) => (
+                    {fieldMappings.map((field) => (
                       <SelectItem key={field.id} value={field.id}>
                         {field.label}
                       </SelectItem>
@@ -182,6 +181,15 @@ const FieldFilter = () => {
           </div>
         )}
       </div>
+
+      {sqlQuery && (
+        <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Generated SQL Query:</h3>
+          <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
+            {sqlQuery}
+          </pre>
+        </div>
+      )}
     </div>
   );
 };
