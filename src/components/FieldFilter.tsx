@@ -2,7 +2,13 @@
 import React, { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -103,44 +109,32 @@ const FieldFilter = () => {
               className="flex gap-4 items-start bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             >
               <div className="flex-1">
-                <Select>
-                  <Select.Trigger className="w-full">
-                    <Select.Value placeholder="Select field" />
-                  </Select.Trigger>
-                  <Select.Content>
+                <Select onValueChange={(value) => updateFilter(filter.id, { field: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select field" />
+                  </SelectTrigger>
+                  <SelectContent>
                     {fields.map((field) => (
-                      <Select.Item
-                        key={field.id}
-                        value={field.id}
-                        onClick={() =>
-                          updateFilter(filter.id, { field: field.id })
-                        }
-                      >
+                      <SelectItem key={field.id} value={field.id}>
                         {field.label}
-                      </Select.Item>
+                      </SelectItem>
                     ))}
-                  </Select.Content>
+                  </SelectContent>
                 </Select>
               </div>
 
               <div className="flex-1">
-                <Select>
-                  <Select.Trigger className="w-full">
-                    <Select.Value placeholder="Select operator" />
-                  </Select.Trigger>
-                  <Select.Content>
+                <Select onValueChange={(value) => updateFilter(filter.id, { operator: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select operator" />
+                  </SelectTrigger>
+                  <SelectContent>
                     {getOperatorsForField(filter.field).map((op) => (
-                      <Select.Item
-                        key={op.id}
-                        value={op.id}
-                        onClick={() =>
-                          updateFilter(filter.id, { operator: op.id })
-                        }
-                      >
+                      <SelectItem key={op.id} value={op.id}>
                         {op.label}
-                      </Select.Item>
+                      </SelectItem>
                     ))}
-                  </Select.Content>
+                  </SelectContent>
                 </Select>
               </div>
 
